@@ -73,7 +73,7 @@ namespace LittleBuddy {
 
         private void DoBackgroundWork (object sender, DoWorkEventArgs e) {
             while (true) {
-                Thread.Sleep(10);
+                Thread.Sleep(5);
 
                 NetIncomingMessage message;
                 while ((message = peer.ReadMessage()) != null) {
@@ -103,22 +103,7 @@ namespace LittleBuddy {
 
             //LogText("Message loop complete.");
         }
-
-        private void button_Click (object sender, RoutedEventArgs e) {
-
-            if (peer == null) {
-                MessageBox.Show("Please choose a connection type");
-                return;
-            }
-
-            if(peer.Connections==null || peer.Connections.Count == 0) {
-                MessageBox.Show("You're not connected to anyone.");
-                return;
-            }
-
-            SendLocation();
-        }
-
+		
         private void SendLocation() {
             if (peer == null || peer.Connections == null || peer.Connections.Count == 0)
                 return;
@@ -218,10 +203,5 @@ namespace LittleBuddy {
             if (GameHasFocus())
                 PressKey(KeyHeldDown.eNone);
         }
-
-		private void checkAlwaysOnTop_Checked(object sender, RoutedEventArgs e)
-		{
-			 //= checkAlwaysOnTop.IsChecked.Value;
-		}
 	}
 }

@@ -5,14 +5,16 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:LittleBuddy"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525" Closed="Window_Closed"
+        Title="Little Buddy" Height="349" Width="459" Closed="Window_Closed"
         Topmost="True">
     <Grid>
-        <Button x:Name="btnClient" Content="Client" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="75" Click="btnClient_Click"/>
-        <Button x:Name="btnServer" Content="Server" HorizontalAlignment="Left" Margin="104,10,0,0" VerticalAlignment="Top" Width="75" Click="btnServer_Click"/>
-        <Button x:Name="button" Content="Button" HorizontalAlignment="Left" Margin="53,57,0,0" VerticalAlignment="Top" Width="75" Click="button_Click"/>
-        <TextBox x:Name="txtLog" TextWrapping="Wrap" Text="TextBox" Margin="10,124,8,10" IsReadOnly="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
-        <CheckBox x:Name="checkAlwaysOnTop" Content="Always on Top" HorizontalAlignment="Left" Margin="279,103,0,0" VerticalAlignment="Top" Checked="checkAlwaysOnTop_Checked"/>
-
+        <UniformGrid VerticalAlignment="Top" Margin="10,10,8,0" Height="51">
+            <Button x:Name="btnServer" Content="Leader (Server)" Click="btnServer_Click" Margin="0,0,5,0" />
+            <Button x:Name="btnClient" Content="Follower (Client)" Click="btnClient_Click" />
+        </UniformGrid>
+        <Label x:Name="lblStatus" Content="Status:" HorizontalAlignment="Left" Margin="10,35,0,0" VerticalAlignment="Top"/>
+        <TextBox x:Name="txtStatus" TextWrapping="Wrap" Text="" Margin="10,61,10,0" IsReadOnly="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" VerticalAlignment="Top"/>
+        <Label x:Name="lblLog" Content="Log:" HorizontalAlignment="Left" Margin="10,84,0,0" VerticalAlignment="Top"/>
+        <TextBox x:Name="txtLog" TextWrapping="Wrap" Text="Little Buddy Initialized." Margin="10,115,8,10" IsReadOnly="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
     </Grid>
 </Window>

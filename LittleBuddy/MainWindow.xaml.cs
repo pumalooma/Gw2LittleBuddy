@@ -28,7 +28,6 @@ namespace LittleBuddy {
         KeyHeldDown prevKey = KeyHeldDown.eNone;
 
         public MainWindow () {
-            //AutoItX.Sleep(10);
             InitializeComponent();
             link = new GW2Link();
         }
@@ -129,8 +128,6 @@ namespace LittleBuddy {
         }
         
         private void HandleIncomingMessage(NetIncomingMessage message) {
-            //LogText(message);
-
             if (isServer)
                 return;
 
@@ -152,37 +149,37 @@ namespace LittleBuddy {
 			var clientPos = new Vector3(data.FAvatarPosition);
 			var clientFront = new Vector3(data.FAvatarFront);
 			var clientRight = Vector3.Up().Cross(clientFront);
-			
+
+			clientPos.y = mServerPos.y;
 			var vecToTarget = Vec.Normalize(mServerPos - clientPos);
 
 			float dot = Vec.DotProduct(clientFront, vecToTarget);
 			float right = Vec.DotProduct(clientRight, vecToTarget);
 			float distance = Vec.Distance(clientPos, mServerPos);
-
-			//LogText(string.Format("Received position info: {0}, {1}, {2}", mServerPos.x, mServerPos.y, mServerPos.z));
-
+			
 			if(distance < distanceThreshold)
 			{
+				StatusText("Close enough, stopping.");
 				PressKey(KeyHeldDown.eNone);
 			}
 			else if(dot < turnThreshold && right < 0.0f)
 			{
-				StatusText("  Turn left    " + dot + "    " + distance);
+				StatusText("Turning left.");
 				PressKey(KeyHeldDown.eLeft);
 			}
 			else if(dot < turnThreshold && right > 0.0f)
 			{
-				StatusText("  Turn right    " + dot + "    " + distance);
+				StatusText("Turning right.");
 				PressKey(KeyHeldDown.eRight);
 			}
 			else if(distance > distanceThreshold)
 			{
-				StatusText("  run forward    " + dot + "    " + distance);
+				StatusText("Moving forward.");
 				PressKey(KeyHeldDown.eForward);
 			}
 		}
 
-        private void PressKey(KeyHeldDown key) {
+		private void PressKey(KeyHeldDown key) {
 
             if (key == prevKey)
                 return;

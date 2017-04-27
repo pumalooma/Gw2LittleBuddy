@@ -18,6 +18,7 @@ namespace LittleBuddy {
         private bool isServer = false;
         private float distanceThreshold = 3.0f;
         private float turnThreshold = 0.9f;
+        private bool bKeepRunning = true;
 
         private enum MessageType { ePosition };
         private enum KeyHeldDown { eNone, eLeft, eRight, eForward };
@@ -33,17 +34,24 @@ namespace LittleBuddy {
 
         private void btnClient_Click (object sender, RoutedEventArgs e) {
 
+            string[] args = Environment.GetCommandLineArgs();
+            if(args.Length < 2) {
+                MessageBox.Show("no ip sent through the args");
+                return;
+            }
+
             btnClient.IsEnabled = false;
             btnServer.IsEnabled = false;
-
+            
             var config = new NetPeerConfiguration("application name");
             var client = new NetClient(config);
             client.Start();
-            client.Connect(host: "192.168.1.34", port: 12345);
+            client.Connect(host: args[1], port: 12345);
             peer = client;
             
             worker.DoWork += DoBackgroundWork;
             worker.RunWorkerAsync();
+            LogText("Started client.");
         }
 
         private void btnServer_Click (object sender, RoutedEventArgs e) {
@@ -57,6 +65,7 @@ namespace LittleBuddy {
 
             worker.DoWork += DoBackgroundWork;
             worker.RunWorkerAsync();
+            LogText("Started Server.");
 
             isServer = true;
         }
@@ -66,15 +75,18 @@ namespace LittleBuddy {
         }
 
         private void LogTextUIThread(string text) {
-			//txtLog.AppendText(text + "\n");
-			//txtLog.ScrollToEnd();
-			txtLog.Text = text;
+			txtLog.AppendText(text + "\n");
+			txtLog.ScrollToEnd();
         }
 
+        private void StatusText (string text) {
+            Dispatcher.BeginInvoke((Action)(() => txtStatus.Text = text));
+        }
+        
         private void DoBackgroundWork (object sender, DoWorkEventArgs e) {
-            while (true) {
-                Thread.Sleep(5);
-
+            while (bKeepRunning) {
+                Thread.Sleep(10);
+                
                 NetIncomingMessage message;
                 while ((message = peer.ReadMessage()) != null) {
                     switch (message.MessageType) {
@@ -92,16 +104,9 @@ namespace LittleBuddy {
                     }
                 }
 
-                if(isServer) {
-
+                if(isServer)
                     SendLocation();
-                }
-                else {
-                    // get mumble position
-                }
             }
-
-            //LogText("Message loop complete.");
         }
 		
         private void SendLocation() {
@@ -148,19 +153,19 @@ namespace LittleBuddy {
 			if(distance < distanceThreshold) {
 			}
             else if (dot < turnThreshold && right < 0.0f) {
-                LogText("  Turn left    " + dot + "    " + distance);
+                StatusText("  Turn left    " + dot + "    " + distance);
                 PressKey(KeyHeldDown.eLeft);
             }
             else if(dot < turnThreshold && right > 0.0f) {
-                LogText("  Turn right    " + dot + "    " + distance);
+                StatusText("  Turn right    " + dot + "    " + distance);
                 PressKey(KeyHeldDown.eRight);
             } else if(distance > distanceThreshold) {
-                LogText("  run forward    " + dot + "    " + distance);
+                StatusText("  run forward    " + dot + "    " + distance);
                 PressKey(KeyHeldDown.eForward);
             }
             else {
-				//PressKey(KeyHeldDown.eNone);
-				LogText( "  dont need to move.    " + dot + "    " + distance);
+                //PressKey(KeyHeldDown.eNone);
+                StatusText( "  dont need to move.    " + dot + "    " + distance);
             }
         }
 
@@ -197,8 +202,13 @@ namespace LittleBuddy {
             return sb.ToString() == "ArenaNet_Dx_Window_Class";
         }
 
-        private void Window_Closed (object sender, EventArgs e) {
+        private void Window_Closing (object sender, EventArgs e) {
+            bKeepRunning = false;
+
+            Thread.Sleep(100);
+
             link.Dispose();
+            link = null;
 
             if (GameHasFocus())
                 PressKey(KeyHeldDown.eNone);

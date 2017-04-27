@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:LittleBuddy"
         mc:Ignorable="d"
-        Title="Little Buddy" Height="349" Width="459" Closed="Window_Closed"
-        Topmost="True">
+        Title="Little Buddy" Height="349" Width="459" Closing="Window_Closing"
+        Topmost="True" Icon="LittleBuddy.ico">
     <Grid>
         <UniformGrid VerticalAlignment="Top" Margin="10,10,8,0" Height="51">
             <Button x:Name="btnServer" Content="Leader (Server)" Click="btnServer_Click" Margin="0,0,5,0" />
@@ -15,6 +15,6 @@
         <Label x:Name="lblStatus" Content="Status:" HorizontalAlignment="Left" Margin="10,35,0,0" VerticalAlignment="Top"/>
         <TextBox x:Name="txtStatus" TextWrapping="Wrap" Text="" Margin="10,61,10,0" IsReadOnly="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" VerticalAlignment="Top"/>
         <Label x:Name="lblLog" Content="Log:" HorizontalAlignment="Left" Margin="10,84,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="txtLog" TextWrapping="Wrap" Text="Little Buddy Initialized." Margin="10,115,8,10" IsReadOnly="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+        <TextBox x:Name="txtLog" TextWrapping="Wrap" Text="" Margin="10,115,8,10" IsReadOnly="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
     </Grid>
 </Window>

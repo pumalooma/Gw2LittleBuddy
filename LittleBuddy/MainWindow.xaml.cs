@@ -19,8 +19,9 @@ namespace LittleBuddy {
         private float distanceThreshold = 3.0f;
         private float turnThreshold = 0.9f;
         private bool bKeepRunning = true;
+		Vector3 mServerPos;
 
-        private enum MessageType { ePosition };
+		private enum MessageType { ePosition };
         private enum KeyHeldDown { eNone, eLeft, eRight, eForward };
 
         GW2Link link;
@@ -104,8 +105,10 @@ namespace LittleBuddy {
                     }
                 }
 
-                if(isServer)
-                    SendLocation();
+				if(isServer)
+					SendLocation();
+				else
+					TurnToLeader();
             }
         }
 		
@@ -135,39 +138,49 @@ namespace LittleBuddy {
                 return;
 
             MessageType messageType = (MessageType)message.ReadByte();
-            var serverPos = new Vector3(message.ReadFloat(), message.ReadFloat(), message.ReadFloat());
-            
-            MumbleLinkedMemory data = link.Read();
-            var clientPos = new Vector3(data.FAvatarPosition);
-            var clientFront = new Vector3(data.FAvatarFront);
+			mServerPos = new Vector3(message.ReadFloat(), message.ReadFloat(), message.ReadFloat());
+
+			TurnToLeader();
+		}
+
+		private void TurnToLeader() {
+
+			if(mServerPos == null)
+				return;
+
+			MumbleLinkedMemory data = link.Read();
+			var clientPos = new Vector3(data.FAvatarPosition);
+			var clientFront = new Vector3(data.FAvatarFront);
 			var clientRight = Vector3.Up().Cross(clientFront);
+			
+			var vecToTarget = Vec.Normalize(mServerPos - clientPos);
 
-            var vecToTarget = Vec.Normalize(serverPos - clientPos);
-            
-            float dot = Vec.DotProduct(clientFront, vecToTarget);
+			float dot = Vec.DotProduct(clientFront, vecToTarget);
 			float right = Vec.DotProduct(clientRight, vecToTarget);
-			float distance = Vec.Distance(clientPos, serverPos);
-            
-            LogText(string.Format("Received position info: {0}, {1}, {2}", serverPos.x, serverPos.y, serverPos.z));
+			float distance = Vec.Distance(clientPos, mServerPos);
 
-			if(distance < distanceThreshold) {
+			//LogText(string.Format("Received position info: {0}, {1}, {2}", mServerPos.x, mServerPos.y, mServerPos.z));
+
+			if(distance < distanceThreshold)
+			{
+				PressKey(KeyHeldDown.eNone);
 			}
-            else if (dot < turnThreshold && right < 0.0f) {
-                StatusText("  Turn left    " + dot + "    " + distance);
-                PressKey(KeyHeldDown.eLeft);
-            }
-            else if(dot < turnThreshold && right > 0.0f) {
-                StatusText("  Turn right    " + dot + "    " + distance);
-                PressKey(KeyHeldDown.eRight);
-            } else if(distance > distanceThreshold) {
-                StatusText("  run forward    " + dot + "    " + distance);
-                PressKey(KeyHeldDown.eForward);
-            }
-            else {
-                //PressKey(KeyHeldDown.eNone);
-                StatusText( "  dont need to move.    " + dot + "    " + distance);
-            }
-        }
+			else if(dot < turnThreshold && right < 0.0f)
+			{
+				StatusText("  Turn left    " + dot + "    " + distance);
+				PressKey(KeyHeldDown.eLeft);
+			}
+			else if(dot < turnThreshold && right > 0.0f)
+			{
+				StatusText("  Turn right    " + dot + "    " + distance);
+				PressKey(KeyHeldDown.eRight);
+			}
+			else if(distance > distanceThreshold)
+			{
+				StatusText("  run forward    " + dot + "    " + distance);
+				PressKey(KeyHeldDown.eForward);
+			}
+		}
 
         private void PressKey(KeyHeldDown key) {
 

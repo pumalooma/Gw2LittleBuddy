@@ -7,6 +7,7 @@ using MumbleLink_CSharp;
 using MumbleLink_CSharp_GW2;
 using System.Text;
 using AutoIt;
+using System.Media;
 
 namespace LittleBuddy {
     /// <summary>
@@ -19,13 +20,13 @@ namespace LittleBuddy {
         private float distanceThreshold = 3.0f;
         private float turnThreshold = 0.9f;
         private bool bKeepRunning = true;
+        private bool mFollowEnabled = true;
 		Vector3 mServerPos;
 
 		private enum MessageType { ePosition };
         private enum KeyHeldDown { eNone, eLeft, eRight, eForward };
 
         GW2Link link;
-        KeyHeldDown prevKey = KeyHeldDown.eNone;
 
         public MainWindow () {
             InitializeComponent();
@@ -34,19 +35,16 @@ namespace LittleBuddy {
 
         private void btnClient_Click (object sender, RoutedEventArgs e) {
 
-            string[] args = Environment.GetCommandLineArgs();
-            if(args.Length < 2) {
-                MessageBox.Show("no ip sent through the args");
-                return;
-            }
-
             btnClient.IsEnabled = false;
             btnServer.IsEnabled = false;
             
             var config = new NetPeerConfiguration("application name");
             var client = new NetClient(config);
             client.Start();
-            client.Connect(host: args[1], port: 12345);
+            
+            config.EnableMessageType(NetIncomingMessageType.DiscoveryResponse);
+            client.DiscoverLocalPeers(12345);
+
             peer = client;
             
             worker.DoWork += DoBackgroundWork;
@@ -59,6 +57,7 @@ namespace LittleBuddy {
             btnServer.IsEnabled = false;
 
             var config = new NetPeerConfiguration("application name") { Port = 12345 };
+            config.EnableMessageType(NetIncomingMessageType.DiscoveryRequest);
             var server = new NetServer(config);
             server.Start();
             peer = server;
@@ -93,6 +92,17 @@ namespace LittleBuddy {
                         case NetIncomingMessageType.Data:
                             HandleIncomingMessage(message);
                             break;
+                        case NetIncomingMessageType.DiscoveryResponse: // client receives this message
+                            LogText("Found server at " + message.SenderEndPoint + " name: " + message.ReadString());
+                            peer.Connect(host: message.SenderEndPoint.Address.ToString(), port: 12345);
+                            break;
+                        case NetIncomingMessageType.DiscoveryRequest: // server receives this message
+                            LogText("Client attempting to connect.");
+                            NetOutgoingMessage response = peer.CreateMessage();
+                            response.Write("My server name");
+                            // Send the response to the sender of the request
+                            peer.SendDiscoveryResponse(response, message.SenderEndPoint);
+                            break;
                         case NetIncomingMessageType.VerboseDebugMessage:
                         case NetIncomingMessageType.DebugMessage:
                         case NetIncomingMessageType.WarningMessage:
@@ -104,10 +114,10 @@ namespace LittleBuddy {
                     }
                 }
 
-				if(isServer)
-					SendLocation();
-				else
-					TurnToLeader();
+                if (isServer)
+                    SendLocation();
+                else
+                    TurnToLeader();
             }
         }
 		
@@ -145,7 +155,16 @@ namespace LittleBuddy {
 			if(mServerPos == null)
 				return;
 
-			MumbleLinkedMemory data = link.Read();
+            if ((Win32.GetAsyncKeyState((int)VirtualKeyStates.VK_NUMPAD7) & Win32.KEY_TOGGLED) == Win32.KEY_TOGGLED) {
+                mFollowEnabled = !mFollowEnabled;
+                if(mFollowEnabled)
+                    SystemSounds.Beep.Play();
+                else
+                    SystemSounds.Asterisk.Play();
+                LogText("Following is " + (mFollowEnabled ? "enabled" : "disabled"));
+            }
+
+            MumbleLinkedMemory data = link.Read();
 			var clientPos = new Vector3(data.FAvatarPosition);
 			var clientFront = new Vector3(data.FAvatarFront);
 			var clientRight = Vector3.Up().Cross(clientFront);
@@ -156,49 +175,50 @@ namespace LittleBuddy {
 			float dot = Vec.DotProduct(clientFront, vecToTarget);
 			float right = Vec.DotProduct(clientRight, vecToTarget);
 			float distance = Vec.Distance(clientPos, mServerPos);
-			
-			if(distance < distanceThreshold)
+
+
+			KeyHeldDown key = KeyHeldDown.eNone;
+
+			if(!mFollowEnabled)
+			{
+				StatusText("Following disabled.");
+			}
+			else if(distance < distanceThreshold)
 			{
 				StatusText("Close enough, stopping.");
-				PressKey(KeyHeldDown.eNone);
 			}
 			else if(dot < turnThreshold && right < 0.0f)
 			{
 				StatusText("Turning left.");
-				PressKey(KeyHeldDown.eLeft);
+				key = KeyHeldDown.eLeft;
 			}
 			else if(dot < turnThreshold && right > 0.0f)
 			{
 				StatusText("Turning right.");
-				PressKey(KeyHeldDown.eRight);
+				key = KeyHeldDown.eRight;
 			}
 			else if(distance > distanceThreshold)
 			{
 				StatusText("Moving forward.");
-				PressKey(KeyHeldDown.eForward);
+				key = KeyHeldDown.eForward;
 			}
-		}
+            
+            SetKeyState("w", 'W', key == KeyHeldDown.eForward);
+            SetKeyState("a", 'A', key == KeyHeldDown.eLeft);
+            SetKeyState("d", 'D', key == KeyHeldDown.eRight);
+        }
+		
+        private void SetKeyState ( string keyName, int key, bool shouldBeDown) {
+            bool keyDown = (Win32.GetAsyncKeyState(key) & Win32.KEY_DOWN) == Win32.KEY_DOWN;
 
-		private void PressKey(KeyHeldDown key) {
-
-            if (key == prevKey)
+            if (keyDown == shouldBeDown)
                 return;
 
-            if(prevKey == KeyHeldDown.eForward)
-                AutoItX.Send("{w up}", 0);
-            else if (prevKey == KeyHeldDown.eLeft)
-                AutoItX.Send("{a up}", 0);
-            else if (prevKey == KeyHeldDown.eRight)
-                AutoItX.Send("{d up}", 0);
+            if(shouldBeDown)
+                AutoItX.Send("{" + keyName + " down}", 0);
+            else
+                AutoItX.Send("{" + keyName + " up}", 0);
             
-            prevKey = key;
-
-            if (key == KeyHeldDown.eForward)
-                AutoItX.Send("{w down}", 0);
-            else if (key == KeyHeldDown.eLeft)
-                AutoItX.Send("{a down}", 0);
-            else if (key == KeyHeldDown.eRight)
-                AutoItX.Send("{d down}", 0);
         }
 
         private bool GameHasFocus() {
@@ -220,8 +240,11 @@ namespace LittleBuddy {
             link.Dispose();
             link = null;
 
-            if (GameHasFocus())
-                PressKey(KeyHeldDown.eNone);
+            if (GameHasFocus()) {
+				SetKeyState("w", 'W', false);
+				SetKeyState("a", 'A', false);
+				SetKeyState("d", 'D', false);
+			}
         }
 	}
 }

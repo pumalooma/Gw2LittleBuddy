@@ -30,7 +30,8 @@ namespace LittleBuddy {
 
         public MainWindow () {
             InitializeComponent();
-            link = new GW2Link();
+			ResourceExtractor.ExtractResourceToFile("LittleBuddy.AutoItX3.dll", "AutoItX3.dll");
+			link = new GW2Link();
         }
 
         private void btnClient_Click (object sender, RoutedEventArgs e) {
@@ -155,12 +156,12 @@ namespace LittleBuddy {
 			if(mServerPos == null)
 				return;
 
-            if ((Win32.GetAsyncKeyState((int)VirtualKeyStates.VK_NUMPAD7) & Win32.KEY_TOGGLED) == Win32.KEY_TOGGLED) {
+            if ((Win32.GetAsyncKeyState((int)VirtualKeyStates.VK_SUBTRACT) & Win32.KEY_TOGGLED) == Win32.KEY_TOGGLED) {
                 mFollowEnabled = !mFollowEnabled;
                 if(mFollowEnabled)
                     SystemSounds.Beep.Play();
                 else
-                    SystemSounds.Asterisk.Play();
+                    SystemSounds.Hand.Play();
                 LogText("Following is " + (mFollowEnabled ? "enabled" : "disabled"));
             }
 
@@ -185,7 +186,7 @@ namespace LittleBuddy {
 			}
 			else if(distance < distanceThreshold)
 			{
-				StatusText("Close enough, stopping.");
+				StatusText("Close enough, stopping." + distance);
 			}
 			else if(dot < turnThreshold && right < 0.0f)
 			{

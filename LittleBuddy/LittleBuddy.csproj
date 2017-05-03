@@ -24,6 +24,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -33,6 +34,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>LittleBuddy.ico</ApplicationIcon>
@@ -40,7 +42,13 @@
   <ItemGroup>
     <Reference Include="AutoItX3.Assembly">
       <HintPath>.\AutoItX3.Assembly.dll</HintPath>
+      <Private>True</Private>
     </Reference>
+    <Reference Include="Lidgren.Network, Version=2012.1.7.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Lidgren.Network.1.0.2\lib\net451\Lidgren.Network.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="PresentationFramework" />
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Windows.Forms" />
@@ -55,13 +63,21 @@
     </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="MumbeLink\GW2Context.cs" />
+    <Compile Include="MumbeLink\GW2Link.cs" />
+    <Compile Include="MumbeLink\GW2Profession.cs" />
+    <Compile Include="MumbeLink\GW2Race.cs" />
+    <Compile Include="MumbeLink\MapType.cs" />
+    <Compile Include="MumbeLink\MumbleLink.cs" />
+    <Compile Include="MumbeLink\MumbleLinkedMemory.cs" />
+    <Compile Include="MumbeLink\NativeMethods.cs" />
+    <Compile Include="ResourceExtractor.cs" />
     <Compile Include="Vec.cs" />
     <Compile Include="VirtualKeys.cs" />
     <Compile Include="Win32.cs" />
@@ -96,6 +112,7 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -106,25 +123,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Lidgren.Network\Lidgren.Network.csproj">
-      <Project>{49BA1C69-6104-41AC-A5D8-B54FA9F696E8}</Project>
-      <Name>Lidgren.Network</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\MumbleLink-CSharp-GW2\MumbleLink-CSharp-GW2.csproj">
-      <Project>{8a8d6dc7-81e3-4140-a6ab-25545220311c}</Project>
-      <Name>MumbleLink-CSharp-GW2</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\MumbleLink-CSharp\MumbleLink-CSharp.csproj">
-      <Project>{f7d52e49-75c2-4578-820f-1b03e5e05e4f}</Project>
-      <Name>MumbleLink-CSharp</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="AutoItX3.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <EmbeddedResource Include="AutoItX3.dll" />
     <Resource Include="LittleBuddy.ico" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

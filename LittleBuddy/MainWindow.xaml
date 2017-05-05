@@ -13,8 +13,9 @@
             <Button x:Name="btnClient" Content="Follower (Client)" Click="btnClient_Click" />
         </UniformGrid>
         <Label x:Name="lblStatus" Content="Status:" HorizontalAlignment="Left" Margin="10,35,0,0" VerticalAlignment="Top"/>
+        <Label x:Name="lblHotkey" Content="Press (Keypad Minus) To toggle following" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,35,8,0"/>
         <TextBox x:Name="txtStatus" TextWrapping="Wrap" Text="" Margin="10,61,10,0" IsReadOnly="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" VerticalAlignment="Top"/>
         <Label x:Name="lblLog" Content="Log:" HorizontalAlignment="Left" Margin="10,84,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="txtLog" TextWrapping="Wrap" Text="" Margin="10,115,8,10" IsReadOnly="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+        <TextBox x:Name="txtLog" TextWrapping="Wrap" Text="" Margin="10,115,8,10" IsReadOnly="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto"/>        
     </Grid>
 </Window>

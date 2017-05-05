@@ -7,7 +7,10 @@ public static class Win32 {
     public static extern IntPtr GetFocus ();
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow ();
-    [DllImport("user32.dll")]
+	[DllImport("user32.dll")]
+	[return: MarshalAs(UnmanagedType.Bool)]
+	public static extern bool SetForegroundWindow(IntPtr hWnd);
+	[DllImport("user32.dll")]
 	public static extern IntPtr GetActiveWindow();
 	[DllImport("user32.dll", SetLastError = true)]
 	public static extern IntPtr FindWindow (string lpClassName, string lpWindowName);
@@ -24,4 +27,13 @@ public static class Win32 {
     [DllImport("user32.dll")]
     public static extern short GetAsyncKeyState (int nVirtKey);
 
+	public static bool IsKeyDown(int key)
+	{
+		return KEY_DOWN == (GetAsyncKeyState(key) & KEY_DOWN);
+	}
+
+	public static bool IsKeyToggle(int key)
+	{
+		return KEY_TOGGLED == (GetAsyncKeyState(key) & KEY_TOGGLED);
+	}
 }

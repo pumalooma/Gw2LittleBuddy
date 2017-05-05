@@ -19,13 +19,13 @@ namespace LittleBuddy {
         private bool isServer = false;
         private float distanceThreshold = 3.0f;
         private float turnThreshold = 0.9f;
-        private bool bKeepRunning = true;
+		private float runTurnThreshold = 0.65f;
+		private bool bKeepRunning = true;
         private bool mFollowEnabled = true;
 		private int mPort = 12343;
         Vector3 mServerPos;
 
-		private enum MessageType { ePosition };
-        private enum KeyHeldDown { eNone, eLeft, eRight, eForward };
+		private enum MessageType { ePosition, eToggleMovement };
 
         GW2Link link;
 
@@ -38,7 +38,15 @@ namespace LittleBuddy {
 
         private void btnClient_Click (object sender, RoutedEventArgs e) {
 
-            btnClient.IsEnabled = false;
+			if(peer != null)
+			{
+				Disconnect();
+				btnClient.Content = "Follower (Client)";
+				btnServer.IsEnabled = true;
+				return;
+			}
+
+			btnClient.Content = "Disconnect";
             btnServer.IsEnabled = false;
             
             var config = new NetPeerConfiguration("littlebuddy");
@@ -53,24 +61,42 @@ namespace LittleBuddy {
             worker.DoWork += DoBackgroundWork;
             worker.RunWorkerAsync();
             LogText("Started client.");
+			SetGameFocus();
         }
 
         private void btnServer_Click (object sender, RoutedEventArgs e) {
-            btnClient.IsEnabled = false;
-            btnServer.IsEnabled = false;
 
+			if (peer != null) {
+				Disconnect();
+				btnServer.Content = "Leader (Server)";
+				btnClient.IsEnabled = true;
+				return;
+            }
+
+            btnClient.IsEnabled = false;
+			btnServer.Content = "Stop Server";
+			
             var config = new NetPeerConfiguration("littlebuddy") { Port = mPort };
             config.EnableMessageType(NetIncomingMessageType.DiscoveryRequest);
             var server = new NetServer(config);
             server.Start();
             peer = server;
 
-            worker.DoWork += DoBackgroundWork;
-            worker.RunWorkerAsync();
+			worker.DoWork += DoBackgroundWork;
+			worker.RunWorkerAsync();
             LogText("Started Server.");
-
-            isServer = true;
+			SetGameFocus();
+			isServer = true;
         }
+
+		private void Disconnect() {
+			bKeepRunning = false;
+			Thread.Sleep(100);
+			peer.Shutdown("force disconnect");
+			peer = null;
+			LogText("Stopped Server.");
+			StatusText("Disconnected.");
+		}
         
         private void LogText(string text) {
             Dispatcher.BeginInvoke((Action)(() => LogTextUIThread(text)));
@@ -116,7 +142,26 @@ namespace LittleBuddy {
                     }
                 }
 
-                if (isServer)
+				if(Win32.IsKeyToggle((int)VirtualKeyStates.VK_SUBTRACT))
+				{
+					mFollowEnabled = !mFollowEnabled;
+					if(mFollowEnabled)
+						SystemSounds.Beep.Play();
+					else
+						SystemSounds.Hand.Play();
+					LogText("Following is " + (mFollowEnabled ? "enabled" : "disabled"));
+
+					if(isServer) {
+						NetOutgoingMessage sendMsg = peer.CreateMessage();
+
+						sendMsg.Write((byte)MessageType.eToggleMovement);
+						sendMsg.Write(mFollowEnabled);
+
+						peer.SendMessage(sendMsg, peer.Connections, NetDeliveryMethod.ReliableOrdered, 0);
+					}
+				}
+
+				if(isServer)
                     SendLocation();
                 else
                     TurnToLeader();
@@ -128,13 +173,14 @@ namespace LittleBuddy {
                 return;
 
             NetOutgoingMessage sendMsg = peer.CreateMessage();
-            
-            MumbleLinkedMemory data = link.Read();
-
-            sendMsg.Write((byte)MessageType.ePosition);
-            sendMsg.Write(data.FAvatarPosition[0]);
-            sendMsg.Write(data.FAvatarPosition[1]);
-            sendMsg.Write(data.FAvatarPosition[2]);
+			
+			MumbleLinkedMemory mumble = link.Read();
+			
+			sendMsg.Write((byte)MessageType.ePosition);
+			sendMsg.Write(mumble.FAvatarPosition[0]);
+			sendMsg.Write(mumble.FAvatarPosition[1]);
+			sendMsg.Write(mumble.FAvatarPosition[2]);
+			
 
             peer.SendMessage(sendMsg, peer.Connections, NetDeliveryMethod.ReliableOrdered, 0);
         }
@@ -143,11 +189,21 @@ namespace LittleBuddy {
             if (isServer)
                 return;
 
-            if (!GameHasFocus())
+			if (!GameHasFocus())
                 return;
 
             MessageType messageType = (MessageType)message.ReadByte();
-			mServerPos = new Vector3(message.ReadFloat(), message.ReadFloat(), message.ReadFloat());
+
+			if(messageType == MessageType.ePosition)
+				mServerPos = new Vector3(message.ReadFloat(), message.ReadFloat(), message.ReadFloat());
+			else if(messageType == MessageType.eToggleMovement) {
+				mFollowEnabled = message.ReadBoolean();
+				if(mFollowEnabled)
+					SystemSounds.Beep.Play();
+				else
+					SystemSounds.Hand.Play();
+				LogText("Following is " + (mFollowEnabled ? "enabled" : "disabled"));
+			}
 
 			TurnToLeader();
 		}
@@ -156,15 +212,6 @@ namespace LittleBuddy {
 
 			if(mServerPos == null)
 				return;
-
-            if ((Win32.GetAsyncKeyState((int)VirtualKeyStates.VK_SUBTRACT) & Win32.KEY_TOGGLED) == Win32.KEY_TOGGLED) {
-                mFollowEnabled = !mFollowEnabled;
-                if(mFollowEnabled)
-                    SystemSounds.Beep.Play();
-                else
-                    SystemSounds.Hand.Play();
-                LogText("Following is " + (mFollowEnabled ? "enabled" : "disabled"));
-            }
 
             MumbleLinkedMemory data = link.Read();
 			var clientPos = new Vector3(data.FAvatarPosition);
@@ -178,42 +225,40 @@ namespace LittleBuddy {
 			float right = Vec.DotProduct(clientRight, vecToTarget);
 			float distance = Vec.Distance(clientPos, mServerPos);
 
-
-			KeyHeldDown key = KeyHeldDown.eNone;
+			bool moveForward = false;
+			bool turnLeft = false;
+			bool turnRight = false;
 
 			if(!mFollowEnabled)
 			{
-				StatusText("Following disabled.");
+				StatusText("Following disabled. Press hotkey to enable.");
 			}
-			else if(distance < distanceThreshold)
+			else
 			{
-				StatusText("Close enough, stopping.");
+				if(distance > distanceThreshold)
+					moveForward = true;
+
+				if(dot < turnThreshold && right < 0.0f) {
+					turnLeft = true;
+					if(dot < runTurnThreshold)
+						moveForward = false;
+				}
+				else if(dot < turnThreshold && right > 0.0f) {
+					turnRight = true;
+					if(dot < runTurnThreshold)
+						moveForward = false;
+				}
+
+				StatusText(string.Format("Holding keys: Forward={0} Left={1} Right={2}", moveForward, turnLeft, turnRight ));
 			}
-			else if(dot < turnThreshold && right < 0.0f)
-			{
-				StatusText("Turning left.");
-				key = KeyHeldDown.eLeft;
-			}
-			else if(dot < turnThreshold && right > 0.0f)
-			{
-				StatusText("Turning right.");
-				key = KeyHeldDown.eRight;
-			}
-			else if(distance > distanceThreshold)
-			{
-				StatusText("Moving forward.");
-				key = KeyHeldDown.eForward;
-			}
-            
-            SetKeyState("w", 'W', key == KeyHeldDown.eForward);
-            SetKeyState("a", 'A', key == KeyHeldDown.eLeft);
-            SetKeyState("d", 'D', key == KeyHeldDown.eRight);
+			            
+            SetKeyState("w", 'W', moveForward);
+            SetKeyState("a", 'A', turnLeft);
+            SetKeyState("d", 'D', turnRight);
         }
 		
         private void SetKeyState ( string keyName, int key, bool shouldBeDown) {
-            bool keyDown = (Win32.GetAsyncKeyState(key) & Win32.KEY_DOWN) == Win32.KEY_DOWN;
-
-            if (keyDown == shouldBeDown)
+            if (Win32.IsKeyDown(key) == shouldBeDown)
                 return;
 
             if(shouldBeDown)
@@ -234,7 +279,16 @@ namespace LittleBuddy {
             return sb.ToString() == "ArenaNet_Dx_Window_Class";
         }
 
-        private void Window_Closing (object sender, EventArgs e) {
+		private void SetGameFocus()
+		{
+			IntPtr hwnd = Win32.FindWindow("ArenaNet_Dx_Window_Class", null);
+			if(hwnd == null || hwnd == IntPtr.Zero)
+				return;
+
+			Win32.SetForegroundWindow(hwnd);
+		}
+
+		private void Window_Closing (object sender, EventArgs e) {
             bKeepRunning = false;
 
             Thread.Sleep(100);

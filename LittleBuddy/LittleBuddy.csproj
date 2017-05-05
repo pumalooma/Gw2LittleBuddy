@@ -126,7 +126,9 @@
     <EmbeddedResource Include="AutoItX3.dll" />
     <Resource Include="LittleBuddy.ico" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <EmbeddedResource Include="AutoItX3.Assembly.dll" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

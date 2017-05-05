@@ -21,7 +21,8 @@ namespace LittleBuddy {
         private float turnThreshold = 0.9f;
         private bool bKeepRunning = true;
         private bool mFollowEnabled = true;
-		Vector3 mServerPos;
+		private int mPort = 12343;
+        Vector3 mServerPos;
 
 		private enum MessageType { ePosition };
         private enum KeyHeldDown { eNone, eLeft, eRight, eForward };
@@ -31,6 +32,7 @@ namespace LittleBuddy {
         public MainWindow () {
             InitializeComponent();
 			ResourceExtractor.ExtractResourceToFile("LittleBuddy.AutoItX3.dll", "AutoItX3.dll");
+			ResourceExtractor.ExtractResourceToFile("LittleBuddy.AutoItX3.Assembly.dll", "AutoItX3.Assembly.dll");
 			link = new GW2Link();
         }
 
@@ -39,12 +41,12 @@ namespace LittleBuddy {
             btnClient.IsEnabled = false;
             btnServer.IsEnabled = false;
             
-            var config = new NetPeerConfiguration("application name");
+            var config = new NetPeerConfiguration("littlebuddy");
             var client = new NetClient(config);
             client.Start();
             
             config.EnableMessageType(NetIncomingMessageType.DiscoveryResponse);
-            client.DiscoverLocalPeers(12345);
+            client.DiscoverLocalPeers(mPort);
 
             peer = client;
             
@@ -57,7 +59,7 @@ namespace LittleBuddy {
             btnClient.IsEnabled = false;
             btnServer.IsEnabled = false;
 
-            var config = new NetPeerConfiguration("application name") { Port = 12345 };
+            var config = new NetPeerConfiguration("littlebuddy") { Port = mPort };
             config.EnableMessageType(NetIncomingMessageType.DiscoveryRequest);
             var server = new NetServer(config);
             server.Start();
@@ -94,13 +96,12 @@ namespace LittleBuddy {
                             HandleIncomingMessage(message);
                             break;
                         case NetIncomingMessageType.DiscoveryResponse: // client receives this message
-                            LogText("Found server at " + message.SenderEndPoint + " name: " + message.ReadString());
-                            peer.Connect(host: message.SenderEndPoint.Address.ToString(), port: 12345);
+                            LogText("Found server at " + message.SenderEndPoint);
+                            peer.Connect(host: message.SenderEndPoint.Address.ToString(), port: mPort);
                             break;
                         case NetIncomingMessageType.DiscoveryRequest: // server receives this message
                             LogText("Client attempting to connect.");
                             NetOutgoingMessage response = peer.CreateMessage();
-                            response.Write("My server name");
                             // Send the response to the sender of the request
                             peer.SendDiscoveryResponse(response, message.SenderEndPoint);
                             break;
@@ -186,7 +187,7 @@ namespace LittleBuddy {
 			}
 			else if(distance < distanceThreshold)
 			{
-				StatusText("Close enough, stopping." + distance);
+				StatusText("Close enough, stopping.");
 			}
 			else if(dot < turnThreshold && right < 0.0f)
 			{

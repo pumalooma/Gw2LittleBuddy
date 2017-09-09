@@ -23,7 +23,9 @@ namespace LittleBuddy {
 		private bool bKeepRunning = true;
         private bool mFollowEnabled = true;
 		private int mPort = 12343;
-        Vector3 mServerPos;
+        private Vector3 mServerPos;
+		private Vector3 mClientPos;
+		private int mFramesStandingStill;
 
 		private enum MessageType { ePosition, eToggleMovement };
 
@@ -208,6 +210,7 @@ namespace LittleBuddy {
 			TurnToLeader();
 		}
 
+
 		private void TurnToLeader() {
 
 			if(mServerPos == null)
@@ -229,14 +232,21 @@ namespace LittleBuddy {
 			bool turnLeft = false;
 			bool turnRight = false;
 
-			if(!mFollowEnabled)
+			bool standingStill = false;
+
+			if(mFollowEnabled)
 			{
-				StatusText("Following disabled. Press hotkey to enable.");
-			}
-			else
-			{
-				if(distance > distanceThreshold)
+				if(distance > distanceThreshold) {
 					moveForward = true;
+
+					if(mClientPos != null)
+					{
+						float distanceMoved = Vec.Distance(mClientPos, clientPos);
+						if(distanceMoved < 0.01f) {
+							standingStill = true;
+						}
+					}
+				}
 
 				if(dot < turnThreshold && right < 0.0f) {
 					turnLeft = true;
@@ -248,23 +258,41 @@ namespace LittleBuddy {
 					if(dot < runTurnThreshold)
 						moveForward = false;
 				}
-
-				StatusText(string.Format("Holding keys: Forward={0} Left={1} Right={2}", moveForward, turnLeft, turnRight ));
 			}
-			            
-            SetKeyState("w", 'W', moveForward);
-            SetKeyState("a", 'A', turnLeft);
-            SetKeyState("d", 'D', turnRight);
-        }
-		
-        private void SetKeyState ( string keyName, int key, bool shouldBeDown) {
-            if (Win32.IsKeyDown(key) == shouldBeDown)
-                return;
 
-            if(shouldBeDown)
+			if(standingStill) {
+				if(mFramesStandingStill++ >= 16) {
+					moveForward = false;
+					mFramesStandingStill = 0;
+                }
+            }
+			else
+				mFramesStandingStill = 0;
+
+			mClientPos = clientPos;
+
+			int forwardPress = SetKeyState("w", 'W', moveForward);
+            int leftPress = SetKeyState("a", 'A', turnLeft);
+            int rightPress = SetKeyState("d", 'D', turnRight);
+
+			if(mFollowEnabled)
+				StatusText(string.Format("keys: Forward={0}-{1} Left={2}-{3} Right={4}-{5}  ({6})", moveForward, forwardPress, turnLeft, leftPress, turnRight, rightPress, DateTime.Now.Second));
+			else
+				StatusText("Following disabled. Press hotkey to enable.");
+		}
+		
+        private int SetKeyState ( string keyName, int key, bool shouldBeDown) {
+            if(Win32.IsKeyDown(key) == shouldBeDown)
+				return 0;
+
+            if(shouldBeDown) {
                 AutoItX.Send("{" + keyName + " down}", 0);
-            else
+				return 1;
+			}
+            else {
                 AutoItX.Send("{" + keyName + " up}", 0);
+				return 2;
+			}
             
         }
 
